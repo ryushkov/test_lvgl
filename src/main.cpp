@@ -13,16 +13,15 @@ Arduino_ESP32RGBPanel *bus = new Arduino_ESP32RGBPanel(
     8 /* B0 */, 3 /* B1 */, 46 /* B2 */, 9 /* B3 */, 1 /* B4 */
 );
 
- Arduino_RPi_DPI_RGBPanel *gfx = new Arduino_RPi_DPI_RGBPanel(
-   bus,
-   800 /* width */, 0 /* hsync_polarity */, 14 /* hsync_front_porch */, 8 /* hsync_pulse_width */, 8 /* hsync_back_porch */,
-   480 /* height */, 0 /* vsync_polarity */, 14 /* vsync_front_porch */, 8 /* vsync_pulse_width */, 8 /* vsync_back_porch */,
-   1 /* pclk_active_neg */, 16000000 /* prefer_speed */, true /* auto_flush */);
+Arduino_RPi_DPI_RGBPanel *gfx = new Arduino_RPi_DPI_RGBPanel(
+    bus,
+    800 /* width */, 0 /* hsync_polarity */, 14 /* hsync_front_porch */, 8 /* hsync_pulse_width */, 8 /* hsync_back_porch */,
+    480 /* height */, 0 /* vsync_polarity */, 14 /* vsync_front_porch */, 8 /* vsync_pulse_width */, 8 /* vsync_back_porch */,
+    1 /* pclk_active_neg */, 16000000 /* prefer_speed */, true /* auto_flush */);
 #endif /* !defined(DISPLAY_DEV_KIT) */
 #include "touch.h"
 
 //добавлено для примера создания экрана
-
 
 /* Change to your screen resolution */
 static uint32_t screenWidth;
@@ -68,52 +67,53 @@ void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
     data->state = LV_INDEV_STATE_REL;
   }
 }
-
-/*void arc_cb(lv_event_t * e) {
-  uint32_t val = lv_arc_get_value(arc);
-    char buf[10];
-    sprintf(buf, "val = %d", val);
-    lv_label_set_text(label, buf);
-}*/
-
-
-void create_start_screen() {
+static void event_handler(lv_event_t *e);
+void first_screen()
+{
   lv_theme_default_init(NULL, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), LV_THEME_DEFAULT_DARK,
-                          LV_FONT_DEFAULT);
+                        LV_FONT_DEFAULT);
+  
+  lv_obj_t *scr1 = lv_obj_create(NULL);
+  lv_obj_t *btn1 = lv_btn_create(scr1);
+  lv_obj_t *label = lv_label_create(btn1);
+  lv_obj_align(btn1, LV_ALIGN_CENTER, 0, -80);
+  lv_label_set_text(label, "keyboard");
+  lv_obj_add_event_cb(btn1, event_handler, LV_EVENT_ALL, NULL);
 
+  lv_scr_load(scr1);
+}
 
-    lv_obj_t * scr = lv_obj_create(NULL);
-    lv_obj_set_flex_flow(scr, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_flex_align(scr, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+void kbd_screen()
+{
+  lv_theme_default_init(NULL, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), LV_THEME_DEFAULT_DARK,
+                        LV_FONT_DEFAULT);
 
-    lv_obj_t * sw;
+  lv_obj_t *scr = lv_obj_create(NULL);
+  lv_obj_t *kb = lv_keyboard_create(scr);
+  lv_obj_t *ta;
+  ta = lv_textarea_create(scr);
+  lv_obj_align(ta, LV_ALIGN_TOP_MID, 0, 20);
+  lv_obj_set_size(ta, 700, 180);
 
-    sw = lv_switch_create(scr);
-
-    sw = lv_switch_create(scr);
-    lv_obj_add_state(sw, LV_STATE_CHECKED);
-
-    sw = lv_switch_create(scr);
-    lv_obj_add_state(sw, LV_STATE_DISABLED);
-
-    sw = lv_switch_create(scr);
-    lv_obj_add_state(sw, LV_STATE_CHECKED | LV_STATE_DISABLED);
-
-    /*lv_obj_t * kb = lv_keyboard_create(scr);
-    lv_obj_t * ta;
-
-    ta = lv_textarea_create(scr);
-    lv_obj_align(ta, LV_ALIGN_TOP_MID, 0,20);
-    lv_obj_set_size(ta, 700, 180);
-
-    lv_keyboard_set_textarea(kb, ta);*/
-
-
+  lv_keyboard_set_textarea(kb, ta);
+  lv_obj_add_event_cb(kb, event_handler, LV_EVENT_READY, NULL);
 
   lv_scr_load(scr);
 }
+static void event_handler(lv_event_t *e)
+{
+  lv_event_code_t code = lv_event_get_code(e);
 
-
+  if (code == LV_EVENT_CLICKED)
+  {
+    kbd_screen();
+  }
+  if
+    (code ==LV_EVENT_READY)
+    {
+      first_screen();
+    }
+}
 
 
 void setup()
@@ -130,9 +130,9 @@ void setup()
   screenWidth = gfx->width();
   screenHeight = gfx->height();
 #ifdef ESP32
-  disp_draw_buf = (lv_color_t *)heap_caps_malloc(sizeof(lv_color_t) * screenWidth * screenHeight/4 , MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+  disp_draw_buf = (lv_color_t *)heap_caps_malloc(sizeof(lv_color_t) * screenWidth * screenHeight / 4, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
 #else
-  disp_draw_buf = (lv_color_t *)malloc(sizeof(lv_color_t) * screenWidth * screenHeight/4);
+  disp_draw_buf = (lv_color_t *)malloc(sizeof(lv_color_t) * screenWidth * screenHeight / 4);
 #endif
   if (!disp_draw_buf)
   {
@@ -140,7 +140,7 @@ void setup()
   }
   else
   {
-    lv_disp_draw_buf_init(&draw_buf, disp_draw_buf, NULL, screenWidth * screenHeight/4);
+    lv_disp_draw_buf_init(&draw_buf, disp_draw_buf, NULL, screenWidth * screenHeight / 4);
 
     /* Initialize the display */
     lv_disp_drv_init(&disp_drv);
@@ -158,7 +158,7 @@ void setup()
     indev_drv.read_cb = my_touchpad_read;
     lv_indev_drv_register(&indev_drv);
 
-    create_start_screen();
+    first_screen();
   }
 }
 
