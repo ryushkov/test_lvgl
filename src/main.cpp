@@ -1,50 +1,10 @@
-
-/*******************************************************************************
- * LVGL Widgets
- * This is a widgets demo for LVGL - Light and Versatile Graphics Library
- * import from: https://github.com/lvgl/lv_demos.git
- *
- * Dependent libraries:
- * LVGL: https://github.com/lvgl/lvgl.git
-
- * Touch libraries:
- * FT6X36: https://github.com/strange-v/FT6X36.git
- * GT911: https://github.com/TAMCTec/gt911-arduino.git
- * XPT2046: https://github.com/PaulStoffregen/XPT2046_Touchscreen.git
- *
- * LVGL Configuration file:
- * Copy your_arduino_path/libraries/lvgl/lv_conf_template.h
- * to your_arduino_path/libraries/lv_conf.h
- * Then find and set:
- * #define LV_COLOR_DEPTH     16
- * #define LV_TICK_CUSTOM     1
- *
- * For SPI display set color swap can be faster, parallel screen don't set!
- * #define LV_COLOR_16_SWAP   1
- *
- * Optional: Show CPU usage and FPS count
- * #define LV_USE_PERF_MONITOR 1
- ******************************************************************************/
-//#include "lv_demo_widgets.h"
 #include <lvgl.h>
-//#include <demos/lv_demos.h>
-/*******************************************************************************
- ******************************************************************************/
 #include <Arduino_GFX_Library.h>
+#include <WiFi.h>
 #define TFT_BL 2
-#define GFX_BL DF_GFX_BL // default backlight pin, you may replace DF_GFX_BL to actual backlight pin
-
-/* More dev device declaration: https://github.com/moononournation/Arduino_GFX/wiki/Dev-Device-Declaration */
 #if defined(DISPLAY_DEV_KIT)
 Arduino_GFX *gfx = create_default_Arduino_GFX();
-#else /* !defined(DISPLAY_DEV_KIT) */
-
-/* More data bus class: https://github.com/moononournation/Arduino_GFX/wiki/Data-Bus-Class */
-//Arduino_DataBus *bus = create_default_Arduino_DataBus();
-
-/* More display class: https://github.com/moononournation/Arduino_GFX/wiki/Display-Class */
-//Arduino_GFX *gfx = new Arduino_ILI9341(bus, DF_GFX_RST, 0 /* rotation */, false /* IPS */);
-
+#else
 Arduino_ESP32RGBPanel *bus = new Arduino_ESP32RGBPanel(
     GFX_NOT_DEFINED /* CS */, GFX_NOT_DEFINED /* SCK */, GFX_NOT_DEFINED /* SDA */,
     40 /* DE */, 41 /* VSYNC */, 39 /* HSYNC */, 42 /* PCLK */,
@@ -52,27 +12,16 @@ Arduino_ESP32RGBPanel *bus = new Arduino_ESP32RGBPanel(
     5 /* G0 */, 6 /* G1 */, 7 /* G2 */, 15 /* G3 */, 16 /* G4 */, 4 /* G5 */,
     8 /* B0 */, 3 /* B1 */, 46 /* B2 */, 9 /* B3 */, 1 /* B4 */
 );
-// option 1:
-// ST7262 IPS LCD 800x480
+
  Arduino_RPi_DPI_RGBPanel *gfx = new Arduino_RPi_DPI_RGBPanel(
    bus,
-   800 /* width */, 0 /* hsync_polarity */, 8 /* hsync_front_porch */, 4 /* hsync_pulse_width */, 8 /* hsync_back_porch */,
-   480 /* height */, 0 /* vsync_polarity */, 8 /* vsync_front_porch */, 4 /* vsync_pulse_width */, 8 /* vsync_back_porch */,
-   1 /* pclk_active_neg */, 14000000 /* prefer_speed */, true /* auto_flush */);
+   800 /* width */, 0 /* hsync_polarity */, 14 /* hsync_front_porch */, 8 /* hsync_pulse_width */, 8 /* hsync_back_porch */,
+   480 /* height */, 0 /* vsync_polarity */, 14 /* vsync_front_porch */, 8 /* vsync_pulse_width */, 8 /* vsync_back_porch */,
+   1 /* pclk_active_neg */, 16000000 /* prefer_speed */, true /* auto_flush */);
 #endif /* !defined(DISPLAY_DEV_KIT) */
-/*******************************************************************************
- * End of Arduino_GFX setting
- ******************************************************************************/
-
-/*******************************************************************************
- * Please config the touch panel in touch.h
- ******************************************************************************/
 #include "touch.h"
 
 //добавлено для примера создания экрана
-static lv_obj_t * scr;
-static lv_obj_t * arc;
-static lv_obj_t * label;
 
 
 /* Change to your screen resolution */
@@ -120,34 +69,46 @@ void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
   }
 }
 
-void arc_cb(lv_event_t * e) {
+/*void arc_cb(lv_event_t * e) {
   uint32_t val = lv_arc_get_value(arc);
     char buf[10];
     sprintf(buf, "val = %d", val);
     lv_label_set_text(label, buf);
-}
+}*/
 
-void create_screen() {
+
+void create_start_screen() {
   lv_theme_default_init(NULL, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), LV_THEME_DEFAULT_DARK,
                           LV_FONT_DEFAULT);
 
-  scr = lv_obj_create(NULL);
 
-    label = lv_label_create(scr);
-    lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR);     /*Circular scroll*/
-    lv_obj_set_width(label, 150);
-    lv_label_set_text(label, "It is a circularly scrolling text. ");
-    lv_obj_align(label, LV_ALIGN_CENTER, 0, -140);
+    lv_obj_t * scr = lv_obj_create(NULL);
+    lv_obj_set_flex_flow(scr, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(scr, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+
+    lv_obj_t * sw;
+
+    sw = lv_switch_create(scr);
+
+    sw = lv_switch_create(scr);
+    lv_obj_add_state(sw, LV_STATE_CHECKED);
+
+    sw = lv_switch_create(scr);
+    lv_obj_add_state(sw, LV_STATE_DISABLED);
+
+    sw = lv_switch_create(scr);
+    lv_obj_add_state(sw, LV_STATE_CHECKED | LV_STATE_DISABLED);
+
+    /*lv_obj_t * kb = lv_keyboard_create(scr);
+    lv_obj_t * ta;
+
+    ta = lv_textarea_create(scr);
+    lv_obj_align(ta, LV_ALIGN_TOP_MID, 0,20);
+    lv_obj_set_size(ta, 700, 180);
+
+    lv_keyboard_set_textarea(kb, ta);*/
 
 
-    arc = lv_arc_create(scr);
-  lv_obj_set_size(arc, 150, 150);
-  lv_arc_set_rotation(arc, 135);
-  lv_arc_set_bg_angles(arc, 0, 270);
-  lv_arc_set_value(arc, 40);
-  lv_obj_center(arc);
-  lv_obj_align(arc, LV_ALIGN_CENTER, 0, 140);
-  lv_obj_add_event_cb(arc, arc_cb, LV_EVENT_ALL, NULL);
 
   lv_scr_load(scr);
 }
@@ -158,19 +119,11 @@ void create_screen() {
 void setup()
 {
   Serial.begin(115200);
-  // while (!Serial);
-  Serial.println("LVGL Widgets Demo");
-
-  // Init touch device
-  
-
-  // Init Display
   gfx->begin();
 #ifdef TFT_BL
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, HIGH);
 #endif
-  
   lv_init();
   delay(10);
   touch_init();
@@ -205,27 +158,12 @@ void setup()
     indev_drv.read_cb = my_touchpad_read;
     lv_indev_drv_register(&indev_drv);
 
-    //lv_demo_widgets();
-
-    create_screen();
-
-    Serial.println("Setup done");
+    create_start_screen();
   }
 }
 
 void loop()
 {
-  lv_timer_handler(); /* let the GUI do its work */
+  lv_timer_handler();
   delay(5);
-
-  static uint32_t ms;
-  /*if (millis() - ms > 1000) {
-    ms = millis();
-    uint32_t val = lv_arc_get_value(arc);
-    char buf[10];
-    sprintf(buf, "val = %d", val);
-    lv_label_set_text(label, buf);
-  }*/
-
-
 }
